@@ -2,13 +2,13 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "uniqueSuffix": {
+    "sufijoUnico": {
       "type": "String",
       "metadata": {
         "description": "Sufijo que se añade al nombre de los recursos para hacerlos únicos."
       }
     },
-    "sqlAdministratorLoginPassword": {
+    "sqlPasswordDeAdministrador": {
       "type": "SecureString",
       "metadata": {
         "description": "Contraseña de SQL Admin"
@@ -18,8 +18,8 @@
   "variables": {
     "location": "[resourceGroup().location]",
     "sqlAdministratorLogin": "sqladminuser",
-    "workspaceName": "[concat('asirsynapse', parameters('uniqueSuffix'))]",
-    "adlsStorageAccountName": "[concat('asirdatalake', parameters('uniqueSuffix'))]",
+    "workspaceName": "[concat('asirsynapse', parameters('sufijoUnico'))]",
+    "adlsStorageAccountName": "[concat('asirdatalake', parameters('sufijoUnico'))]",
     "defaultDataLakeStorageFilesystemName": "defaultfs",
     "sqlComputeName": "SQLPool01",
     "sparkComputeName": "SparkPool01",
@@ -36,10 +36,10 @@
     "sparkAutoPauseEnabled": "true",
     "sparkAutoPauseDelayInMinutes": "15",
     "sparkVersion": "2.4",
-    "keyVaultName": "[concat('asirclaves', parameters('uniqueSuffix'))]",
-    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('uniqueSuffix'))]",
-    "applicationInsightsName": "[concat('asirAppInsights', parameters('uniqueSuffix'))]",
-    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('uniqueSuffix'))]"   
+    "keyVaultName": "[concat('asirclaves', parameters('sufijoUnico'))]",
+    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('sufijoUnico'))]",
+    "applicationInsightsName": "[concat('asirAppInsights', parameters('sufijoUnico'))]",
+    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('sufijoUnico'))]"   
   },
   "resources": [
     {
@@ -185,7 +185,7 @@
           "computeSubnetId": "[variables('computeSubnetId')]"
         },
         "sqlAdministratorLogin": "[variables('sqlAdministratorLogin')]",
-        "sqlAdministratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]"
+        "sqlPasswordDeAdministrador": "[parameters('sqlPasswordDeAdministrador')]"
       },
       "resources": [
         {
