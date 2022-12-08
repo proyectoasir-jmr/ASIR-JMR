@@ -2,29 +2,29 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "sufijoUnico": {
+    "uniqueSuffix": {
       "type": "String",
       "metadata": {
-        "description": "Sufijo que se añade al nombre de los recursos para hacerlos únicos."
+        "description": "Suffix added to all resource name to make them unique."
       }
     },
-    "sqlPasswordDeAdministrador": {
+    "sqlAdministratorLoginPassword": {
       "type": "SecureString",
       "metadata": {
-        "description": "Contraseña de SQL Admin"
+        "description": "Password for SQL Admin"
       }
     }
   },
   "variables": {
     "location": "[resourceGroup().location]",
-    "sqlAdministratorLogin": "sqladminuser",
-    "workspaceName": "[concat('asirsynapse', parameters('sufijoUnico'))]",
-    "adlsStorageAccountName": "[concat('asirdatalake', parameters('sufijoUnico'))]",
+    "sqlAdministratorLogin": "asa.sql.admin",
+    "workspaceName": "[concat('asaworkspace', parameters('uniqueSuffix'))]",
+    "adlsStorageAccountName": "[concat('asadatalake', parameters('uniqueSuffix'))]",
     "defaultDataLakeStorageFilesystemName": "defaultfs",
     "sqlComputeName": "SQLPool01",
     "sparkComputeName": "SparkPool01",
     "computeSubnetId": "",
-    "sqlServerSKU": "DW100c",
+    "sqlServerSKU": "DW500c",
     "storageBlobDataContributorRoleID": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
     "defaultDataLakeStorageAccountUrl": "[concat('https://', variables('adlsStorageAccountName'), '.dfs.core.windows.net')]",
     "sparkAutoScaleEnabled": "true",
@@ -36,10 +36,10 @@
     "sparkAutoPauseEnabled": "true",
     "sparkAutoPauseDelayInMinutes": "15",
     "sparkVersion": "2.4",
-    "keyVaultName": "[concat('asirclaves', parameters('sufijoUnico'))]",
-    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('sufijoUnico'))]",
-    "applicationInsightsName": "[concat('asirAppInsights', parameters('sufijoUnico'))]",
-    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('sufijoUnico'))]"   
+    "keyVaultName": "[concat('asakeyvault', parameters('uniqueSuffix'))]",
+    "blobStorageAccountName": "[concat('asastore', parameters('uniqueSuffix'))]",
+    "applicationInsightsName": "[concat('asaappinsights', parameters('uniqueSuffix'))]",
+    "amlWorkspaceName": "[concat('amlworkspace', parameters('uniqueSuffix'))]"   
   },
   "resources": [
     {
@@ -185,7 +185,7 @@
           "computeSubnetId": "[variables('computeSubnetId')]"
         },
         "sqlAdministratorLogin": "[variables('sqlAdministratorLogin')]",
-        "sqlPasswordDeAdministrador": "[parameters('sqlPasswordDeAdministrador')]"
+        "sqlAdministratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]"
       },
       "resources": [
         {
