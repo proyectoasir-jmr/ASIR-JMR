@@ -307,7 +307,7 @@ $asaArtifacts = [ordered]@{
         "$($dataLakeAccountName)" = "linkedServices"
         "$($blobStorageAccountName)" = "linkedServices"
         "$($sqlPoolName)" = "linkedServices"
-
+}
 
 foreach ($asaArtifactName in $asaArtifacts.Keys) {
         try {
