@@ -26,7 +26,6 @@ $global:logindomain = (Get-AzContext).Tenant.Id
 
 $templatesPath = ".\templates"
 $datasetsPath = ".\datasets"
-$pipelinesPath = ".\pipelines"
 $sqlScriptsPath = ".\sql"
 $workspaceName = "asirsynapse$($uniqueId)"
 $dataLakeAccountName = "asirdatalake$($uniqueId)"
@@ -93,7 +92,7 @@ $dataLakeAccountKey = List-StorageAccountKeys -SubscriptionId $subscriptionId -R
 $result = Create-DataLakeLinkedService -TemplatesPath $templatesPath -WorkspaceName $workspaceName -Name $dataLakeAccountName  -Key $dataLakeAccountKey
 Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 
-Write-Information "reando servicio linkado con el almacén Blob $($blobStorageAccountName)"
+Write-Information "Creando servicio linkado con el almacén Blob $($blobStorageAccountName)"
 
 $blobStorageAccountKey = List-StorageAccountKeys -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -Name $blobStorageAccountName
 $result = Create-BlobStorageLinkedService -TemplatesPath $templatesPath -WorkspaceName $workspaceName -Name $blobStorageAccountName  -Key $blobStorageAccountKey
@@ -115,14 +114,6 @@ $params = @{
         "DATALAKESTORAGEACCOUNTNAME" = $dataLakeAccountName
 }
 
-try
-{
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName "master" -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "00_master_setup" -Parameters $params
-}
-catch 
-{
-    write-host $_.exception
-}
 
 try
 {
@@ -143,28 +134,12 @@ $result = Create-SQLPoolKeyVaultLinkedService -TemplatesPath $templatesPath -Wor
                  -UserName "asa.sql.admin" -KeyVaultLinkedServiceName $keyVaultName -SecretName $keyVaultSQLUserSecretName
 Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 
-Write-Information "Creando linked service a la cola SQL $($sqlPoolName) con el usuario asa.sql.workload01"
-
-$linkedServiceName = "$($sqlPoolName.ToLower())_workload01"
-$result = Create-SQLPoolKeyVaultLinkedService -TemplatesPath $templatesPath -WorkspaceName $workspaceName -Name $linkedServiceName -DatabaseName $sqlPoolName `
-                 -UserName "asa.sql.workload01" -KeyVaultLinkedServiceName $keyVaultName -SecretName $keyVaultSQLUserSecretName
-Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
-
-Write-Information "Creando linked service a la cola SQL $($sqlPoolName) con el usuario asa.sql.workload02"
-
-$linkedServiceName = "$($sqlPoolName.ToLower())_workload02"
-$result = Create-SQLPoolKeyVaultLinkedService -TemplatesPath $templatesPath -WorkspaceName $workspaceName -Name $linkedServiceName -DatabaseName $sqlPoolName `
-                 -UserName "asa.sql.workload02" -KeyVaultLinkedServiceName $keyVaultName -SecretName $keyVaultSQLUserSecretName
-Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
-
 
 Write-Information "Creando conjuntos de datos..."
 
 $datasets = @{
         asamcw_product_asa = $sqlPoolName.ToLower()
         asamcw_product_csv = $dataLakeAccountName
-        asamcw_wwi_salesmall_workload1_asa = "$($sqlPoolName.ToLower())_workload01"      
-        asamcw_wwi_salesmall_workload2_asa = "$($sqlPoolName.ToLower())_workload02" 
 }
 
 foreach ($dataset in $datasets.Keys) 
@@ -174,30 +149,6 @@ foreach ($dataset in $datasets.Keys)
         Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 }
 
-Write-Information "Creando tuberías"
-
-$params = @{
-        "STORAGELINKEDSERVICENAME" = $blobStorageAccountName
-}
-$workloadPipelines = [ordered]@{
-        copy_products_pipeline = "ASAMCW - Exercise 2 - Copy Product Information"
-        execute_business_analyst_queries = "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries"
-        execute_data_analyst_and_ceo_queries = "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries"
-}
-
-foreach ($pipeline in $workloadPipelines.Keys) 
-{
-    try
-    {
-        Write-Information "Creating pipeline $($workloadPipelines[$pipeline])"
-        $result = Create-Pipeline -PipelinesPath $pipelinesPath -WorkspaceName $workspaceName -Name $workloadPipelines[$pipeline] -FileName $workloadPipelines[$pipeline] -Parameters $params
-        Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
-    }
-    catch
-    {
-        write-host $_.exception;
-    }
-}
 
 $publicDataUrl = "https://solliancepublicdata.blob.core.windows.net/"
 $dataLakeStorageUrl = "https://"+ $dataLakeAccountName + ".dfs.core.windows.net/"
@@ -264,38 +215,6 @@ Write-Information "Validando el entorno..."
 $sqlConnectionString = "Server=tcp:$($workspaceName).sql.azuresynapse.net,1433;Initial Catalog=$($sqlPoolName);Persist Security Info=False;User ID=$($sqlUserName);Password=$($sqlPassword);MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 $validEnvironment = $true
 
-Write-Information "Verificando la existencia de los usuarios en la cola SQL..."
-$sqlPoolUsers = 'asa.sql.workload01', 'asa.sql.workload02','CEO','DataAnalystMiami','DataAnalystSanDiego'
-foreach($sqlUser in $sqlPoolUsers)
-{
-        $usrQuery = "select count(name) as Count from sys.database_principals where name = '$($sqlUser)'"
-        $result = (Invoke-SqlCmd -Query $usrQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-        if ($result -eq 1){       
-        	Write-Host "User $($sqlUser) verified" 
-        }
-        else {
-        	Write-Host "User $($sqlUser) not found" -ForegroundColor Red
-        	$validEnvironment = $false
-        }
-}
-
-Write-Information "Verificando permisos de los usuarios en la cola SQL..."
-$sqlUserRoles = @{
-	"CEO" = 'db_datareader'
-	"asa.sql.workload01" = 'db_datareader'
-	"asa.sql.workload02" = 'db_datareader'
-}
-foreach($usrRole in $sqlUserRoles.Keys){
-	$roleQuery = "select IS_ROLEMEMBER('$($sqlUserRoles[$usrRole])', '$($usrRole)') as INROLE"
-	$result = (Invoke-SqlCmd -Query $roleQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty INROLE
-	if ($result -eq 1){       
-        Write-Host "User $($usrRole) verified in role $($sqlUserRoles[$usrRole])"
-    }
-    else {
-    	Write-Host "User $($usrRole) is not in role $($sqlUserRoles[$usrRole])" -ForegroundColor Red
-    	$validEnvironment = $false
-    }
-}
 
 Write-Information "Verificando la existencia del esquema wwi_mcw con datos de ejemplo..."
 $schemaQuery = "select count(name) as Count from sys.schemas where name='wwi_mcw'"
@@ -303,7 +222,7 @@ $result = (Invoke-SqlCmd -Query $schemaQuery -ConnectionString $sqlConnectionStr
 if ($result -eq 1){Write-Host 'Schema wwi_mcw verified'}else{Write-Host 'Schema wwi_mcw not found' -ForegroundColor Red;$validEnvironment = $false}
 
 Write-Information "Verificando la existencia de las tablas en la cola SQL..."
-$sqlTables = 'Product', 'ASAMCWMLModelExt','ASAMCWMLModel'
+$sqlTables = 'Product'
 foreach($table in $sqlTables)
 {
         $tblQuery = "select count(name) as Count from sys.tables where name = '$($table)' and SCHEMA_NAME(schema_id) = 'wwi_mcw'"
@@ -317,19 +236,15 @@ foreach($table in $sqlTables)
         }
 }
 
-$scopedCredentialQuery = "select count(name) as Count from sys.database_scoped_credentials where name='StorageCredential'"
+$scopedCredentialQuery = "select count(name) as Count from sys.database_scoped_credentials where name='CredencialBBDD'"
 $result = (Invoke-SqlCmd -Query $scopedCredentialQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
 if ($result -eq 1){Write-Host 'Credenciales de Base de Datos verificadas.'}else{Write-Host 'Credenciales de Base de Datos no encontradas.' -ForegroundColor Red;$validEnvironment = $false}
 
 Write-Information "Verifying the existence of the SQL External Data Source (Storage)..."
-$extDataSourceQuery = "select count(name) as Count from sys.external_data_sources where name='ASAMCWModelStorage'"
+$extDataSourceQuery = "select count(name) as Count from sys.external_data_sources where name='DataLakeExterno'"
 $result = (Invoke-SqlCmd -Query $extDataSourceQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-if ($result -eq 1){Write-Host 'External data source ASAMCWModelStorage verified'}else{Write-Host 'External data source ASAMCWModelStorage not found' -ForegroundColor Red;$validEnvironment = $false}
+if ($result -eq 1){Write-Host 'External data source DataLakeExterno verified'}else{Write-Host 'External data source DataLakeExterno not found' -ForegroundColor Red;$validEnvironment = $false}
 
-Write-Information "Verifying the existence of the SQL Pool Model External Table..."
-$extTableQuery = "select count(name) as Count from sys.external_tables where name='ASAMCWMLModelExt' and SCHEMA_NAME(schema_id)='wwi_mcw'"
-$result = (Invoke-SqlCmd -Query $extTableQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-if ($result -eq 1){Write-Host 'External table ASAMCWMLModelExt verified'}else{Write-Host 'External table ASAMCWMLModelExt not found' -ForegroundColor Red;$validEnvironment = $false}
 
 Write-Information "Verifying the existence of the SQL CSV external file format..."
 $fileFormatQuery = "select count(name) as Count from sys.external_file_formats where name='csv'"
@@ -385,20 +300,14 @@ foreach($path in $pathsAndCounts.Keys){
 }
 
 $asaArtifacts = [ordered]@{
-        "asamcw_wwi_salesmall_workload1_asa" = "datasets"
-        "asamcw_wwi_salesmall_workload2_asa" = "datasets"
+
         "asamcw_product_csv" = "datasets"
         "asamcw_product_asa" = "datasets"
-        "ASAMCW - Exercise 2 - Copy Product Information" = "pipelines"
-        "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries" = "pipelines"
-        "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries" = "pipelines"
         "$($keyVaultName)" = "linkedServices"
         "$($dataLakeAccountName)" = "linkedServices"
         "$($blobStorageAccountName)" = "linkedServices"
         "$($sqlPoolName)" = "linkedServices"
-        "$($sqlPoolName.ToLower())_workload01" = "linkedServices"
-        "$($sqlPoolName.ToLower())_workload02" = "linkedServices"
-}
+
 
 foreach ($asaArtifactName in $asaArtifacts.Keys) {
         try {
