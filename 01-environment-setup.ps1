@@ -28,16 +28,16 @@ $templatesPath = ".\templates"
 $datasetsPath = ".\datasets"
 $pipelinesPath = ".\pipelines"
 $sqlScriptsPath = ".\sql"
-$workspaceName = "asaworkspace$($uniqueId)"
-$dataLakeAccountName = "asadatalake$($uniqueId)"
-$blobStorageAccountName = "asastore$($uniqueId)"
-$keyVaultName = "asakeyvault$($uniqueId)"
+$workspaceName = "asirsynapse$($uniqueId)"
+$dataLakeAccountName = "asirdatalake$($uniqueId)"
+$blobStorageAccountName = "asiralmacenamiento$($uniqueId)"
+$keyVaultName = "asirclaves$($uniqueId)"
 $keyVaultSQLUserSecretName = "SQL-USER-ASA"
 $sqlPoolName = "SQLPool01"
 $sqlUserName = "asa.sql.admin"
 $integrationRuntimeName = "AzureIntegrationRuntime01"
 $sparkPoolName = "SparkPool01"
-$amlWorkspaceName = "amlworkspace$($uniqueId)"
+$amlWorkspaceName = "asirMachineLearning$($uniqueId)"
 
 $global:synapseToken = ""
 $global:synapseSQLToken = ""
@@ -174,30 +174,6 @@ foreach ($dataset in $datasets.Keys)
         Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 }
 
-Write-Information "Create pipelines"
-
-$params = @{
-        "STORAGELINKEDSERVICENAME" = $blobStorageAccountName
-}
-$workloadPipelines = [ordered]@{
-        copy_products_pipeline = "ASAMCW - Exercise 2 - Copy Product Information"
-        execute_business_analyst_queries = "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries"
-        execute_data_analyst_and_ceo_queries = "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries"
-}
-
-foreach ($pipeline in $workloadPipelines.Keys) 
-{
-    try
-    {
-        Write-Information "Creating pipeline $($workloadPipelines[$pipeline])"
-        $result = Create-Pipeline -PipelinesPath $pipelinesPath -WorkspaceName $workspaceName -Name $workloadPipelines[$pipeline] -FileName $workloadPipelines[$pipeline] -Parameters $params
-        Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
-    }
-    catch
-    {
-        write-host $_.exception;
-    }
-}
 
 $publicDataUrl = "https://solliancepublicdata.blob.core.windows.net/"
 $dataLakeStorageUrl = "https://"+ $dataLakeAccountName + ".dfs.core.windows.net/"
@@ -389,9 +365,6 @@ $asaArtifacts = [ordered]@{
         "asamcw_wwi_salesmall_workload2_asa" = "datasets"
         "asamcw_product_csv" = "datasets"
         "asamcw_product_asa" = "datasets"
-        "ASAMCW - Exercise 2 - Copy Product Information" = "pipelines"
-        "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries" = "pipelines"
-        "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries" = "pipelines"
         "$($keyVaultName)" = "linkedServices"
         "$($dataLakeAccountName)" = "linkedServices"
         "$($blobStorageAccountName)" = "linkedServices"

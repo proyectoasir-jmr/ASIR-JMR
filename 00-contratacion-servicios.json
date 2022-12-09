@@ -2,24 +2,24 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "uniqueSuffix": {
+    "SufijoUnico": {
       "type": "String",
       "metadata": {
-        "description": "Suffix added to all resource name to make them unique."
+        "description": "Sufijo añadido al nombre del recurso para que sea único."
       }
     },
-    "sqlAdministratorLoginPassword": {
+    "SQLPasswordDelAdministrador": {
       "type": "SecureString",
       "metadata": {
-        "description": "Password for SQL Admin"
+        "description": "Password del Administrador SQL"
       }
     }
   },
   "variables": {
     "location": "[resourceGroup().location]",
     "sqlAdministratorLogin": "asa.sql.admin",
-    "workspaceName": "[concat('asaworkspace', parameters('uniqueSuffix'))]",
-    "adlsStorageAccountName": "[concat('asadatalake', parameters('uniqueSuffix'))]",
+    "workspaceName": "[concat('asirsynapse', parameters('SufijoUnico'))]",
+    "adlsStorageAccountName": "[concat('asirdatalake', parameters('SufijoUnico'))]",
     "defaultDataLakeStorageFilesystemName": "defaultfs",
     "sqlComputeName": "SQLPool01",
     "sparkComputeName": "SparkPool01",
@@ -36,10 +36,10 @@
     "sparkAutoPauseEnabled": "true",
     "sparkAutoPauseDelayInMinutes": "15",
     "sparkVersion": "2.4",
-    "keyVaultName": "[concat('asakeyvault', parameters('uniqueSuffix'))]",
-    "blobStorageAccountName": "[concat('asastore', parameters('uniqueSuffix'))]",
-    "applicationInsightsName": "[concat('asaappinsights', parameters('uniqueSuffix'))]",
-    "amlWorkspaceName": "[concat('amlworkspace', parameters('uniqueSuffix'))]"   
+    "keyVaultName": "[concat('asirclaves', parameters('SufijoUnico'))]",
+    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('SufijoUnico'))]",
+    "applicationInsightsName": "[concat('asirappinsights', parameters('SufijoUnico'))]",
+    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('SufijoUnico'))]"   
   },
   "resources": [
     {
@@ -185,7 +185,7 @@
           "computeSubnetId": "[variables('computeSubnetId')]"
         },
         "sqlAdministratorLogin": "[variables('sqlAdministratorLogin')]",
-        "sqlAdministratorLoginPassword": "[parameters('sqlAdministratorLoginPassword')]"
+        "sqlAdministratorLoginPassword": "[parameters('SQLPasswordDelAdministrador')]"
       },
       "resources": [
         {
