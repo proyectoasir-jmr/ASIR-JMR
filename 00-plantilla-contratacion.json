@@ -2,24 +2,24 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "SufijoUnico": {
+    "sufijoUnico": {
       "type": "String",
       "metadata": {
-        "description": "Sufijo añadido al nombre del recurso para que sea único."
+        "description": "Sufijo que se añade al nombre de los recursos para hacerlos únicos."
       }
     },
-    "SQLPasswordDelAdministrador": {
+    "sqlPasswordDeAdministrador": {
       "type": "SecureString",
       "metadata": {
-        "description": "Password del Administrador SQL"
+        "description": "Contraseña de SQL Admin"
       }
     }
   },
   "variables": {
     "location": "[resourceGroup().location]",
-    "sqlAdministratorLogin": "asa.sql.admin",
-    "workspaceName": "[concat('asirsynapse', parameters('SufijoUnico'))]",
-    "adlsStorageAccountName": "[concat('asirdatalake', parameters('SufijoUnico'))]",
+    "sqlAdministratorLogin": "sqladministrador",
+    "workspaceName": "[concat('asirsynapse', parameters('sufijoUnico'))]",
+    "adlsStorageAccountName": "[concat('asirdatalake', parameters('sufijoUnico'))]",
     "defaultDataLakeStorageFilesystemName": "defaultfs",
     "sqlComputeName": "SQLPool01",
     "sparkComputeName": "SparkPool01",
@@ -36,10 +36,10 @@
     "sparkAutoPauseEnabled": "true",
     "sparkAutoPauseDelayInMinutes": "15",
     "sparkVersion": "2.4",
-    "keyVaultName": "[concat('asirclaves', parameters('SufijoUnico'))]",
-    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('SufijoUnico'))]",
-    "applicationInsightsName": "[concat('asirappinsights', parameters('SufijoUnico'))]",
-    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('SufijoUnico'))]"   
+    "keyVaultName": "[concat('asirclaves', parameters('sufijoUnico'))]",
+    "blobStorageAccountName": "[concat('asiralmacenamiento', parameters('sufijoUnico'))]",
+    "applicationInsightsName": "[concat('asirAppInsights', parameters('sufijoUnico'))]",
+    "amlWorkspaceName": "[concat('asirMachineLearning', parameters('sufijoUnico'))]"   
   },
   "resources": [
     {
@@ -185,7 +185,7 @@
           "computeSubnetId": "[variables('computeSubnetId')]"
         },
         "sqlAdministratorLogin": "[variables('sqlAdministratorLogin')]",
-        "sqlAdministratorLoginPassword": "[parameters('SQLPasswordDelAdministrador')]"
+        "sqlAdministratorLoginPassword": "[parameters('sqlPasswordDeAdministrador')]"
       },
       "resources": [
         {
