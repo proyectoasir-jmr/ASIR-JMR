@@ -127,11 +127,11 @@ catch
 
 $result
 
-Write-Information "Creando linked service a la cola SQL $($sqlPoolName) con el usuario asa.sql.admin"
+Write-Information "Creando linked service a la cola SQL $($sqlPoolName) con el usuario sqladministrador"
 
 $linkedServiceName = $sqlPoolName.ToLower()
 $result = Create-SQLPoolKeyVaultLinkedService -TemplatesPath $templatesPath -WorkspaceName $workspaceName -Name $linkedServiceName -DatabaseName $sqlPoolName `
-                 -UserName "asa.sql.admin" -KeyVaultLinkedServiceName $keyVaultName -SecretName $keyVaultSQLUserSecretName
+                 -UserName "sqladministrador" -KeyVaultLinkedServiceName $keyVaultName -SecretName $keyVaultSQLUserSecretName
 Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 
 
