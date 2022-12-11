@@ -25,7 +25,6 @@ $subscriptionId = (Get-AzContext).Subscription.Id
 $global:logindomain = (Get-AzContext).Tenant.Id
 
 $templatesPath = ".\templates"
-$datasetsPath = ".\datasets"
 $sqlScriptsPath = ".\sql"
 $workspaceName = "asirsynapse$($uniqueId)"
 $dataLakeAccountName = "asirdatalake$($uniqueId)"
@@ -135,21 +134,6 @@ $result = Create-SQLPoolKeyVaultLinkedService -TemplatesPath $templatesPath -Wor
 Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 
 
-Write-Information "Creando conjuntos de datos..."
-
-$datasets = @{
-        asamcw_product_asa = $sqlPoolName.ToLower()
-        asamcw_product_csv = $dataLakeAccountName
-}
-
-foreach ($dataset in $datasets.Keys) 
-{
-        Write-Information "Creando DataSet $($dataset)"
-        $result = Create-Dataset -DatasetsPath $datasetsPath -WorkspaceName $workspaceName -Name $dataset -LinkedServiceName $datasets[$dataset]
-        Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
-}
-
-
 $publicDataUrl = "https://solliancepublicdata.blob.core.windows.net/"
 $dataLakeStorageUrl = "https://"+ $dataLakeAccountName + ".dfs.core.windows.net/"
 $dataLakeStorageBlobUrl = "https://"+ $dataLakeAccountName + ".blob.core.windows.net/"
@@ -219,7 +203,7 @@ $validEnvironment = $true
 Write-Information "Verificando la existencia del esquema wwi_mcw con datos de ejemplo..."
 $schemaQuery = "select count(name) as Count from sys.schemas where name='wwi_mcw'"
 $result = (Invoke-SqlCmd -Query $schemaQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-if ($result -eq 1){Write-Host 'Schema wwi_mcw verified'}else{Write-Host 'Schema wwi_mcw not found' -ForegroundColor Red;$validEnvironment = $false}
+if ($result -eq 1){Write-Host 'Esquema wwi_mcw verificado'}else{Write-Host 'Esquema wwi_mcw no encontrado' -ForegroundColor Red;$validEnvironment = $false}
 
 Write-Information "Verificando la existencia de las tablas en la cola SQL..."
 $sqlTables = 'Product'
@@ -240,16 +224,16 @@ $scopedCredentialQuery = "select count(name) as Count from sys.database_scoped_c
 $result = (Invoke-SqlCmd -Query $scopedCredentialQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
 if ($result -eq 1){Write-Host 'Credenciales de Base de Datos verificadas.'}else{Write-Host 'Credenciales de Base de Datos no encontradas.' -ForegroundColor Red;$validEnvironment = $false}
 
-Write-Information "Verifying the existence of the SQL External Data Source (Storage)..."
+Write-Information "Verificando la existencia del almacenamiento Data Lake externo..."
 $extDataSourceQuery = "select count(name) as Count from sys.external_data_sources where name='DataLakeExterno'"
 $result = (Invoke-SqlCmd -Query $extDataSourceQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-if ($result -eq 1){Write-Host 'External data source DataLakeExterno verified'}else{Write-Host 'External data source DataLakeExterno not found' -ForegroundColor Red;$validEnvironment = $false}
+if ($result -eq 1){Write-Host 'Data Lake externo verificado'}else{Write-Host 'Data Lake externo no encontrado' -ForegroundColor Red;$validEnvironment = $false}
 
 
-Write-Information "Verifying the existence of the SQL CSV external file format..."
+Write-Information "Verificando la existencia del formato CSV creado ..."
 $fileFormatQuery = "select count(name) as Count from sys.external_file_formats where name='csv'"
 $result = (Invoke-SqlCmd -Query $fileFormatQuery -ConnectionString $sqlConnectionString) | Select-Object -ExpandProperty Count
-if ($result -eq 1){Write-Host 'File Format csv verified'}else{Write-Host 'File format csv not found' -ForegroundColor Red;$validEnvironment = $false}
+if ($result -eq 1){Write-Host 'Formato de archivo CSV verificado'}else{Write-Host 'Formato de archivo CSV no encontrado' -ForegroundColor Red;$validEnvironment = $false}
 
 $storageFilesAndFolders = @{
         parquet_query_file = "wwi-02/sale-small/Year=2010/Quarter=Q4/Month=12/Day=20101231/sale-small-20101231-snappy.parquet"
@@ -266,19 +250,19 @@ $storageFilesAndFolders = @{
         ss2019 = "wwi-02/sale-small/Year=2019"
 }
 
-Write-Information "Verifying the data lake storage account and required files..."
+Write-Information "Verificando la cuenta de almacenamiento Data Lake y archivos necesarios ..."
 $dataLakeAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $dataLakeAccountName
 
 if ($dataLakeAccount -eq $null) {
-        Write-Host "The datalake account $($dataLakeAccountName) was not found" -ForegroundColor Red
+        Write-Host "La cuenta de almacenamiento $($dataLakeAccountName) no se ha encontrado" -ForegroundColor Red
         $validEnvironment = $false
 } else {
 	foreach($storageFileOrFolder in $storageFilesAndFolders.Keys){	
 		$dataLakeItem = Get-AzDataLakeGen2Item -Context $dataLakeAccount.Context -FileSystem $storageFilesAndFolders[$storageFileOrFolder].Split("/")[0] -Path $storageFilesAndFolders[$storageFileOrFolder].Replace($storageFilesAndFolders[$storageFileOrFolder].Split("/")[0] +"/","")
 		if(!($dataLakeItem -eq $null)){
-			Write-Host "Data Lake $($storageFilesAndFolders[$storageFileOrFolder]) has been verified"
+			Write-Host "Data Lake $($storageFilesAndFolders[$storageFileOrFolder]) ha sido verificado."
 		} else {
-			Write-Host "Data Lake $($storageFilesAndFolders[$storageFileOrFolder]) not found" -ForegroundColor Red
+			Write-Host "Data Lake $($storageFilesAndFolders[$storageFileOrFolder]) no encontrado." -ForegroundColor Red
         	        $validEnvironment = $false
 		}
 	}
@@ -292,17 +276,14 @@ $pathsAndCounts = @{
 foreach($path in $pathsAndCounts.Keys){
 	$fileCount = (Get-AzDataLakeGen2ChildItem -Context $dataLakeAccount.Context -FileSystem $path.Split("/")[0] -Path $path.Replace($path.Split("/")[0] +"/","") -Recurse | Where-Object {$_.Length -gt 0}).Count
 	if($fileCount -eq $pathsAndCounts[$path]){
-		Write-Host "$($path) file count verified at $($pathsAndCounts[$path])"
+		Write-Host "$($path) número de archivos verificado en $($pathsAndCounts[$path])"
 	} else {
-                Write-Host "$($path) file count INCORRECT expected $($pathsAndCounts[$path]), actual $($fileCount)." -ForegroundColor Red
+                Write-Host "$($path) número de archivos experados INCORRECTO $($pathsAndCounts[$path]), actual $($fileCount)." -ForegroundColor Red
                 $validEnvironment = $false
 	}
 }
 
 $asaArtifacts = [ordered]@{
-
-        "asamcw_product_csv" = "datasets"
-        "asamcw_product_asa" = "datasets"
         "$($keyVaultName)" = "linkedServices"
         "$($dataLakeAccountName)" = "linkedServices"
         "$($blobStorageAccountName)" = "linkedServices"
@@ -311,18 +292,18 @@ $asaArtifacts = [ordered]@{
 
 foreach ($asaArtifactName in $asaArtifacts.Keys) {
         try {
-                Write-Information "Checking $($asaArtifactName) in $($asaArtifacts[$asaArtifactName])"
+                Write-Information "Chequeando $($asaArtifactName) en $($asaArtifacts[$asaArtifactName])"
                 $result = Get-ASAObject -WorkspaceName $workspaceName -Category $asaArtifacts[$asaArtifactName] -Name $asaArtifactName
-                Write-Host "$($asaArtifactName) verified in Synapse Workspace $($asaArtifacts[$asaArtifactName])"
+                Write-Host "$($asaArtifactName) verificado en Synapse Workspace $($asaArtifacts[$asaArtifactName])"
         }
         catch {
-                Write-Host "$($asaArtifactName) verified in Synapse Workspace $($asaArtifacts[$asaArtifactName])" -ForegroundColor Red
+                Write-Host "$($asaArtifactName) verificado en Synapse Workspace $($asaArtifacts[$asaArtifactName])" -ForegroundColor Red
                 $validEnvironment = $false
         }
 }
 
 if($validEnvironment = $true){
-        Write-Host "Environment validation has succeeded." -ForegroundColor Green
+        Write-Host "EL ENTORNO HA SIDO VERIFICADO." -ForegroundColor Green
 } else {
-        Write-Host "Environment validation has failed. Please check the above output for Red messages." -ForegroundColor Red
+        Write-Host "EL ENTORNO NO ES CORRECTO. COMPRUEBE LOS MENSAJES DE ERROR EN ROJO." -ForegroundColor Red
 }
